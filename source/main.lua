@@ -9,7 +9,7 @@ local gfx <const> = playdate.graphics
 class('Waterline').extends(Object)
 
 Waterline.CONFIG = {
-    baseY = 26,           -- Base water level Y position
+    baseY = 2,           -- Base water level Y position
     screenWidth = 400,     -- Playdate screen width
     waves = {
         {frequency = 0.01, amplitude = 2, speed = 0.2},    -- Primary slow wave
@@ -48,7 +48,7 @@ function Waterline:draw()
         end
         
         y = math.floor(y)
-        gfx.drawPixel(x, y)
+        gfx.drawLine(x, 0, x, y)
     end
 end
 
