@@ -1,73 +1,73 @@
--- Below is a small example program where you can move a circle
--- around with the crank. You can delete everything in this file,
--- but make sure to add back in a playdate.update function since
--- one is required for every Playdate game!
--- =============================================================
-
--- Importing libraries used for drawCircleAtPoint and crankIndicator
 import "CoreLibs/graphics"
-import "CoreLibs/ui"
 
 -- Localizing commonly used globals
 local pd <const> = playdate
 local gfx <const> = playdate.graphics
 
--- Defining player variables
-local playerSize = 10
-local playerVelocity = 3
-local playerX, playerY = 200, 120
+-- Wave Class
+Wave = {}
+Wave.__index = Wave
 
--- Drawing player image
-local playerImage = gfx.image.new(32, 32)
-gfx.pushContext(playerImage)
-    -- Draw outline
-    gfx.drawRoundRect(4, 3, 24, 26, 1)
-    -- Draw screen
-    gfx.drawRect(7, 6, 18, 12)
-    -- Draw eyes
-    gfx.drawLine(10, 12, 12, 10)
-    gfx.drawLine(12, 10, 14, 12)
-    gfx.drawLine(17, 12, 19, 10)
-    gfx.drawLine(19, 10, 21, 12)
-    -- Draw crank
-    gfx.drawRect(27, 15, 3, 9)
-    -- Draw A/B buttons
-    gfx.drawCircleInRect(16, 20, 4, 4)
-    gfx.drawCircleInRect(21, 20, 4, 4)
-    -- Draw D-Pad
-    gfx.drawRect(8, 22, 6, 2)
-    gfx.drawRect(10, 20, 2, 6)
-gfx.popContext()
+function Wave:new(y, octaves, speed, bob_amplitude, bob_speed)
+    local wave = {}
+    setmetatable(wave, Wave)
 
--- Defining helper function
-local function ring(value, min, max)
-	if (min > max) then
-		min, max = max, min
-	end
-	return min + (value - min) % (max - min)
+    wave.y_position = y
+    wave.octaves = octaves
+    wave.speed = speed
+    wave.bob_amplitude = bob_amplitude
+    wave.bob_speed = bob_speed
+    
+    wave.offset = 0
+    wave.bob_offset = 0
+
+    return wave
 end
 
--- playdate.update function is required in every project!
-function playdate.update()
-    -- Clear screen
-    gfx.clear()
-    -- Draw crank indicator if crank is docked
-    if pd.isCrankDocked() then
-        pd.ui.crankIndicator:draw()
-    else
-        -- Calculate velocity from crank angle 
-        local crankPosition = pd.getCrankPosition() - 90
-        local xVelocity = math.cos(math.rad(crankPosition)) * playerVelocity
-        local yVelocity = math.sin(math.rad(crankPosition)) * playerVelocity
-        -- Move player
-        playerX += xVelocity
-        playerY += yVelocity
-        -- Loop player position
-        playerX = ring(playerX, -playerSize, 400 + playerSize)
-        playerY = ring(playerY, -playerSize, 240 + playerSize)
+function Wave:update()
+    self.offset += self.speed
+    self.bob_offset += self.bob_speed
+end
+
+function Wave:draw()
+    gfx.setLineWidth(1)
+    
+    local lastX, lastY
+    
+    local bob = math.sin(self.bob_offset) * self.bob_amplitude
+    
+    for x = 0, pd.display.getWidth() do
+        local y_sum = 0
+        for i, octave in ipairs(self.octaves) do
+            local angle = (x * octave.frequency) + self.offset
+            y_sum += math.sin(angle) * octave.amplitude
+        end
+        
+        local y = self.y_position + y_sum + bob
+        
+        if lastX then
+            gfx.drawLine(lastX, lastY, x, y)
+        end
+        
+        lastX, lastY = x, y
     end
-    -- Draw text
-    gfx.drawTextAligned("Template configured!", 200, 30, kTextAlignment.center)
-    -- Draw player
-    playerImage:drawAnchored(playerX, playerY, 0.5, 0.5)
+end
+
+-- Create a wave instance with multiple octaves for a more organic feel
+local waterLine = Wave:new(
+    20, -- Base Y position
+    { -- Octaves for wave shape
+        {frequency = 0.05, amplitude = 4},
+        {frequency = 0.15, amplitude = 1.5}
+    },
+    0.02, -- Horizontal scroll speed
+    2,    -- Bobbing amplitude
+    0.01  -- Bobbing speed
+)
+
+function playdate.update()
+    gfx.clear()
+
+    waterLine:update()
+    waterLine:draw()
 end
