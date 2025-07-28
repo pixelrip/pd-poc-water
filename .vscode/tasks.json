@@ -24,7 +24,7 @@
             // Look for build problems that match a specific format and output it to the "problems" window
             "problemMatcher": ["$pdc-external"],
             // Close any existing simulator windows before launching a new one
-            "kill": true,
+            //"kill": true,
             "presentation": {
                 // Switch to problems tab on error
                 "revealProblems": "onProblem",
